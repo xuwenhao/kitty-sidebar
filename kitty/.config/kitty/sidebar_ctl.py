@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """Sidebar control script for kitty — toggle and new-tab-with-sidebar.
 
 Runs as plain python3 (no kitty modules needed). Uses `kitty @` remote
@@ -25,7 +26,10 @@ def _get_kitty_socket() -> str | None:
     """
     sock = os.environ.get('KITTY_LISTEN_ON')
     if sock:
-        return sock
+        # Verify the socket file actually exists (it may be stale after restart)
+        path = sock.removeprefix('unix:')
+        if os.path.exists(path):
+            return sock
     sockets = sorted(
         glob.glob('/tmp/kitty.sock-*'),
         key=os.path.getmtime,
