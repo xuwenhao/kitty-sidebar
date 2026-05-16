@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Scrub commit messages before they are recorded:
+#   1. Drop Co-Authored-By trailers (added by Claude Code and other AI
+#      assistants — personal repos under xuwenhao should not advertise them).
+#   2. Drop any line referencing the work email chris-srp@srp.one, so a
+#      misconfigured git identity in a personal repo doesn't leak the work
+#      address through trailers (Co-Authored-By / Signed-off-by / ...) or
+#      free-form text.
+#   3. Trim trailing blank lines left behind by the deletions.
+#
+# Enable for this clone once with:
+#   git config core.hooksPath .githooks
+#
+# Portable across GNU and BSD sed (macOS) by avoiding the non-portable `-i`.
+
+set -euo pipefail
+
+msg="$1"
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+
+sed -e '/^Co-Authored-By:/d' \
+    -e '/chris-srp@srp\.one/d' \
+    "$msg" \
+  | awk 'BEGIN{buf=""} /^$/ {buf=buf ORS; next} {printf "%s%s\n", buf, $0; buf=""}' \
+  > "$tmp"
+
+cat "$tmp" > "$msg"
